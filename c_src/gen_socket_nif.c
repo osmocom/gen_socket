@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2010-2012, Travelping GmbH <info@travelping.com
+ * Copyright (c) 2010-2012, Travelping GmbH <info@travelping.com>
+ * Copyright (c) 2024 by sysmocom - s.f.m.c. GmbH <info@sysmocom.de>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -81,7 +82,27 @@ static ERL_NIF_TERM atom_sock_err;
 
 // -------------------------------------------------------------------------------------------------
 // -- MISC INTERNAL HELPER FUNCTIONS
-#define enif_get_ssize enif_get_long
+static inline int enif_get_ssize(ErlNifEnv *env, ERL_NIF_TERM term, ssize_t *ip)
+{
+    int rc;
+#if (SIZEOF_LONG != 8) && (SSIZE_MAX >= INT64_MAX)
+        ErlNifSInt64 val;
+        rc = enif_get_int64(env, term, &val);
+        if (ip)
+            *ip = (ssize_t)val;
+#elif SSIZE_MAX >= LONG_MAX
+        long int val;
+        rc = enif_get_long(env, term, &val);
+        if (ip)
+            *ip = (ssize_t)val;
+#else
+        int val;
+        rc = enif_get_int(env, term, &val);
+        if (ip)
+            *ip = (ssize_t)val;
+#endif
+    return rc;
+}
 
 inline static ERL_NIF_TERM
 error_tuple(ErlNifEnv *env, int errnum)
